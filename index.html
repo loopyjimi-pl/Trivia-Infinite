@@ -15,6 +15,11 @@
             min-height: 100vh;
             overflow-x: hidden;
             -webkit-tap-highlight-color: transparent;
+            display: flex;
+            flex-direction: column; /* Ensure body children stack */
+            justify-content: center;
+            align-items: center;
+            padding: 4px; /* Reduced padding to center the main container */
         }
         
         .glass-panel {
@@ -22,7 +27,7 @@
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 25px 50px -12p x rgba(0, 0, 0, 0.5);
         }
 
         .glass-input {
@@ -117,10 +122,26 @@
             font-size: 0.9rem;
             animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
+
+        /* Ad Banner Placeholder Styling */
+        #admob-banner {
+            width: 100%;
+            height: 50px; /* Standard banner height */
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0,0,0,0.2);
+            color: #ccc;
+            font-size: 0.8rem;
+            border-radius: 8px;
+            opacity: 0; /* Hidden until the app environment loads it */
+            transition: opacity 0.3s;
+        }
     </style>
 </head>
-<body class="flex items-center justify-center p-4 select-none">
-
+<body class="p-4 select-none">
+    
     <div class="fixed inset-0 overflow-hidden -z-10">
         <div class="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[100px] float-anim"></div>
         <div class="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[100px] float-anim" style="animation-delay: 2s"></div>
@@ -392,6 +413,11 @@
         </div>
     </div>
 
+    <!-- AD BANNER CONTAINER -->
+    <div id="admob-banner" class="w-full max-w-3xl">
+        Waiting for AdMob initialization...
+    </div>
+
     <script>
         // --- API CONFIGURATION ---
         // IMPORTANT: PASTE YOUR GOOGLE GEMINI API KEY INSIDE THE QUOTES BELOW
@@ -399,6 +425,103 @@
         
         const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
         const QUESTIONS_PER_ROUND = 10;
+
+        // --- ADMOB CONFIGURATION (FOR CAPACITOR MOBILE APP) ---
+        // NOTE: This code relies on the 'capacitor-community/admob' plugin being installed.
+        const AdMobConfig = {
+            // YOUR PROVIDED APP ID: This is placed in the native AndroidManifest.xml and iOS Info.plist files.
+            APP_ID: "ca-app-pub-6053574162799348~6087903379", 
+            
+            // BANNER AD UNIT ID: Using the unit ID provided in the last user message.
+            BANNER_UNIT_ID: "ca-app-pub-6053574162799348/8159548856", 
+            
+            // INTERSTITIAL AD UNIT ID: Placeholder - You need to create a SEPARATE Interstitial Ad Unit ID on AdMob
+            // for the full-screen ads that show between rounds.
+            INTERSTITIAL_UNIT_ID: "ca-app-pub-6053574162799348/2222222222", 
+        };
+
+        // --- ADMOB FUNCTIONS ---
+
+        // Function to check if AdMob is available (i.e., running in a mobile wrapper)
+        function isAdMobAvailable() {
+            // Check if 'AdMob' object exists and has the necessary methods
+            return typeof AdMob !== 'undefined' && typeof AdMob.initialize === 'function';
+        }
+
+        // 1. Initialize the AdMob SDK
+        async function initializeAds() {
+            const bannerEl = document.getElementById('admob-banner');
+            if (!isAdMobAvailable()) {
+                // If not running in a mobile wrapper, show a preview message instead of errors
+                bannerEl.textContent = "AdMob Initialized (Preview Mode Only - Using Unit ID: " + AdMobConfig.BANNER_UNIT_ID.split('/')[1] + ")";
+                bannerEl.style.opacity = '1';
+                return; 
+            }
+
+            try {
+                // Request Tracking Authorization for iOS 14+
+                if (AdMob.requestTrackingAuthorization) {
+                    await AdMob.requestTrackingAuthorization();
+                }
+
+                await AdMob.initialize({
+                    requestTrackingAuthorization: true,
+                    // Note: The App ID is usually read from the native manifest files, but initialization is needed.
+                });
+                console.log("AdMob Initialized successfully.");
+                
+                // Start showing the banner ad immediately after successful initialization
+                showBannerAd();
+
+            } catch (e) {
+                console.error("AdMob Initialization Failed (likely network or native setup error):", e);
+                bannerEl.textContent = "Ad Loading Failed";
+                bannerEl.style.color = '#f87171';
+                bannerEl.style.opacity = '1';
+            }
+        }
+
+        // 2. Show a Banner Ad at the bottom
+        async function showBannerAd() {
+            if (!isAdMobAvailable()) return;
+            try {
+                await AdMob.showBanner({
+                    adId: AdMobConfig.BANNER_UNIT_ID,
+                    position: 'BOTTOM_CENTER',
+                    isTesting: false, // Set to true to use AdMob test unit IDs
+                    // The capacitor plugin handles showing the banner *over* the WebView
+                });
+                document.getElementById('admob-banner').style.opacity = '1'; // Indicate ad area is active
+                console.log("Banner Ad requested.");
+            } catch (e) {
+                console.warn("Banner Ad failed to show:", e);
+            }
+        }
+
+        // 3. Show a Full-Screen Interstitial Ad
+        async function showInterstitialAd() {
+            if (!isAdMobAvailable()) return;
+            // IMPORTANT: If you haven't replaced the INTERSTITIAL_UNIT_ID placeholder with a valid AdMob ID,
+            // this function will fail when building the native app.
+            if (AdMobConfig.INTERSTITIAL_UNIT_ID === "ca-app-pub-6053574162799348/2222222222") {
+                console.warn("Interstitial Ad skipped: Please replace the placeholder ID with your actual AdMob Interstitial Unit ID.");
+                return;
+            }
+            try {
+                // 1. Prepare/Load the Ad (pre-load before showing)
+                await AdMob.prepareInterstitial({
+                    adId: AdMobConfig.INTERSTITIAL_UNIT_ID,
+                    isTesting: false,
+                });
+
+                // 2. Show the loaded Ad
+                await AdMob.showInterstitial();
+                console.log("Interstitial Ad displayed.");
+            } catch (e) {
+                console.warn("Interstitial Ad failed to show (might be pre-loaded, not ready, or user closed):", e);
+            }
+        }
+
 
         // --- TOPIC GENERATOR CONFIG ---
         const MASTER_TOPICS = [
@@ -557,6 +680,9 @@
             if (savedName) els.inputs.name.value = savedName;
             document.body.addEventListener('click', () => { if(audioCtx.state === 'suspended') audioCtx.resume(); }, {once:true});
             setMode('solo'); // Default
+            
+            // Initialize AdMob integration
+            initializeAds();
         };
 
         function switchView(viewName) {
@@ -707,6 +833,11 @@
             state.roundQuestions = [];
             state.lifelineUsed = false;
             
+            // Show interstitial ad before the round starts (if it's not the first player's first round)
+            if ((state.mode === 'solo' && state.score > 0) || (state.mode === 'versus' && state.currentPlayer === 2)) {
+                await showInterstitialAd(); 
+            }
+            
             const currentPlayerName = state.currentPlayer === 1 ? state.p1Name : state.p2Name;
             
             document.getElementById('loading-player').textContent = currentPlayerName;
@@ -721,7 +852,7 @@
             if (state.isFetching) return;
             state.isFetching = true;
 
-            const historyContext = state.questionHistory.slice(-60); // Check past questions to avoid dupes
+            const historyContext = state.questionHistory.slice(-60); // Check past questions to prevent dupes
 
             const prompt = `
                 Role: Trivia Host. Topic: "${state.topic}".
@@ -841,7 +972,6 @@
                 // Find the index based on the letter (A=0, B=1, etc.)
                 // This assumes the originalOpts array contains options in the order A, B, C, D, even if randomized for display.
                 // Since the API returns {"q":..., "opts": ["A","B","C","D"], "ans": "B"}, we must be careful.
-                // For simplicity in a self-contained environment, we rely on matching the *text* of the option.
                 // If the API returns 'A', 'B', 'C', 'D' as option text, this is fine.
                 // If the API returns 'The answer is X' and ans is 'The answer is X', this is fine.
                 return ans;
@@ -918,6 +1048,9 @@
         function endRound() {
             sounds.win();
             
+            // Show interstitial ad when round is complete
+            showInterstitialAd();
+
             if (state.mode === 'versus') {
                 if (state.currentPlayer === 1) {
                     // STORE P1 DATA AND SWITCH

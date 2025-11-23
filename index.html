@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Trivia Infinite: Ultimate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .glass-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(4px);
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .float-anim { animation: float 6s ease-in-out infinite; }
+
+        @keyframes spin-slow { to { transform: rotate(360deg); } }
+        .spin-slow { animation: spin-slow 2s linear infinite; }
+
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.9); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .pop-in { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        .btn-hover { transition: all 0.2s ease; }
+        .btn-hover:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3); }
+        .btn-hover:active { transform: translateY(0); }
+        .btn-hover:disabled { opacity: 0.5; transform: none; cursor: not-allowed; filter: grayscale(1); }
+
+        .hidden { display: none !important; }
+
+        .correct-answer {
+            background: linear-gradient(90deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1)) !important;
+            border-color: #4ade80 !important;
+            color: #4ade80 !important;
+            box-shadow: 0 0 15px rgba(74, 222, 128, 0.2);
+        }
+        .wrong-answer {
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1)) !important;
+            border-color: #f87171 !important;
+            color: #f87171 !important;
+        }
+        .unselected-dim { opacity: 0.3; filter: grayscale(1); transition: opacity 0.5s; }
+        
+        /* 50/50 Removed State */
+        .removed-option {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.8);
+            transition: all 0.3s ease;
+        }
+
+        @keyframes floatUpFade {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-30px); }
+        }
+        .points-float {
+            position: absolute;
+            font-weight: bold;
+            color: #fbbf24;
+            animation: floatUpFade 1s forwards;
+            pointer-events: none;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            z-index: 50;
+        }
+        
+        .modal-backdrop { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px); }
+
+        /* Toast Notification */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            pointer-events: none;
+        }
+        .toast {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4 select-none">
+
+    <div class="fixed inset-0 overflow-hidden -z-10">
+        <div class="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[100px] float-anim"></div>
+        <div class="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[100px] float-anim" style="animation-delay: 2s"></div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <div id="app-container" class="w-full max-w-3xl min-h-[650px] glass-panel rounded-3xl flex flex-col relative overflow-hidden ring-1 ring-white/10">
+        
+        <!-- Header -->
+        <header class="p-6 border-b border-white/5 flex justify-between items-center bg-slate-900/30">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+                    <i class="fa-solid fa-brain text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-xl tracking-tight">Trivia<span class="text-indigo-400">Infinite</span></h1>
+                    <div class="flex items-center gap-2">
+                        <p id="mode-badge" class="text-xs text-gray-400 font-medium tracking-wider uppercase">Ranked Mode</p>
+                        <button onclick="toggleSound()" id="sound-toggle" class="text-gray-400 hover:text-white ml-2">
+                            <i class="fa-solid fa-volume-high"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- HUD -->
+            <div id="hud" class="hidden flex gap-3">
+                <div class="flex flex-col items-end">
+                    <span id="player-turn-label" class="text-xs text-gray-400 uppercase font-bold">Score</span>
+                    <span id="score-val" class="font-mono text-xl font-bold text-indigo-400">0</span>
+                </div>
+                <div class="w-px bg-white/10 h-8 self-center"></div>
+                <div class="flex flex-col items-end">
+                    <span class="text-xs text-gray-400 uppercase font-bold">Streak</span>
+                    <span id="streak-val" class="font-mono text-xl font-bold text-orange-400">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- VIEW: START -->
+        <div id="view-start" class="flex-1 flex flex-col p-8 pop-in overflow-y-auto">
+            <div class="text-center mb-6">
+                <h2 class="text-3xl font-bold mb-3">New Game</h2>
+                <p class="text-gray-400">Select mode and choose your topic.</p>
+            </div>
+
+            <div class="w-full max-w-md mx-auto space-y-5">
+                
+                <!-- Mode Selection -->
+                <div class="flex bg-white/5 rounded-xl p-1 border border-white/10 mb-2">
+                    <button onclick="setMode('solo')" id="mode-solo" class="flex-1 py-2 rounded-lg text-sm font-bold bg-indigo-500 text-white shadow-lg transition-all">Solo</button>
+                    <button onclick="setMode('versus')" id="mode-versus" class="flex-1 py-2 rounded-lg text-sm font-bold text-gray-400 hover:text-white transition-all">Versus (2P)</button>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-indigo-300 uppercase tracking-wider ml-1">Player 1 Name</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                        <input type="text" id="player-name" maxlength="15"
+                            class="w-full glass-input rounded-xl pl-12 pr-4 py-4 text-lg focus:outline-none focus:border-indigo-500 focus:bg-white/10 transition-all placeholder-gray-600"
+                            placeholder="Enter Name">
+                    </div>
+                </div>
+
+                <div id="p2-input-group" class="space-y-2 hidden">
+                    <label class="text-xs font-bold text-purple-300 uppercase tracking-wider ml-1">Player 2 Name</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-user-astronaut absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                        <input type="text" id="player2-name" maxlength="15"
+                            class="w-full glass-input rounded-xl pl-12 pr-4 py-4 text-lg focus:outline-none focus:border-purple-500 focus:bg-white/10 transition-all placeholder-gray-600"
+                            placeholder="Enter Rival Name">
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-indigo-300 uppercase tracking-wider ml-1">Subject / Topic</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                        <input type="text" id="topic-input" maxlength="40"
+                            class="w-full glass-input rounded-xl pl-12 pr-4 py-4 text-lg focus:outline-none focus:border-indigo-500 focus:bg-white/10 transition-all placeholder-gray-600"
+                            placeholder="e.g. 80s Rock, Ancient Rome...">
+                    </div>
+                </div>
+                
+                <!-- DYNAMIC SUGGESTIONS -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">Suggested for you</label>
+                    <div id="suggestions-container" class="grid grid-cols-2 gap-3">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <button onclick="initGame()" 
+                    class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl font-bold text-lg shadow-xl shadow-indigo-900/20 btn-hover mt-4 flex items-center justify-center gap-2">
+                    <span>Start Game</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <!-- Leaderboard (Solo Only Logic applied later) -->
+            <div id="leaderboard-section" class="mt-8 pt-8 border-t border-white/5">
+                <div class="flex items-center gap-2 mb-4">
+                    <i class="fa-solid fa-trophy text-yellow-500"></i>
+                    <span class="font-bold text-sm uppercase tracking-wider text-gray-400">Solo High Scores</span>
+                </div>
+                <div id="mini-leaderboard" class="grid grid-cols-1 gap-2 text-sm">
+                    <div class="p-3 rounded-lg bg-white/5 text-gray-400 text-center italic">No scores recorded yet.</div>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-4 pb-2 text-center opacity-60 hover:opacity-100 transition-opacity">
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-2">Legal & Compliance</p>
+                <div class="flex justify-center gap-4 text-xs text-indigo-300">
+                    <button onclick="toggleLegal(true)" class="hover:text-white underline">Disclaimers & Terms</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: LOADING -->
+        <div id="view-loading" class="hidden flex-1 flex flex-col items-center justify-center p-8">
+            <div class="relative">
+                <div class="w-20 h-20 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full spin-slow"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <i class="fa-solid fa-robot text-indigo-300 text-xl"></i>
+                </div>
+            </div>
+            <h3 class="text-2xl font-bold mt-6 mb-2">Constructing Round...</h3>
+            <p class="text-gray-400 text-center max-w-xs">Generating unique questions for <span id="loading-player" class="text-indigo-400 font-bold">Player 1</span> about <span id="loading-topic" class="text-white font-semibold"></span></p>
+        </div>
+
+        <!-- VIEW: INTERMISSION (For 2 Player) -->
+        <div id="view-intermission" class="hidden flex-1 flex flex-col items-center justify-center p-8 text-center pop-in">
+            <div class="w-20 h-20 rounded-full bg-purple-600/20 flex items-center justify-center mb-6">
+                <i class="fa-solid fa-handshake text-3xl text-purple-400"></i>
+            </div>
+            <h2 class="text-3xl font-bold mb-2">Round 1 Complete!</h2>
+            <p class="text-gray-400 mb-8">Player 1 Scored: <span id="intermission-score" class="text-white font-bold text-xl">0</span></p>
+            
+            <div class="p-6 bg-white/5 rounded-2xl border border-white/10 max-w-sm w-full mb-8">
+                <p class="text-sm font-bold text-indigo-300 uppercase tracking-wider mb-2">Next Up</p>
+                <h3 id="intermission-next-name" class="text-2xl font-bold text-white">Player 2</h3>
+                <p class="text-xs text-gray-500 mt-2">Pass the device to start your turn.</p>
+            </div>
+
+            <button onclick="startPlayer2Turn()" class="px-8 py-4 bg-indigo-600 rounded-xl font-bold hover:bg-indigo-500 btn-hover shadow-lg shadow-indigo-500/20 flex items-center gap-3">
+                <span>Start Player 2 Round</span>
+                <i class="fa-solid fa-play"></i>
+            </button>
+        </div>
+
+        <!-- VIEW: GAME -->
+        <div id="view-game" class="hidden flex-1 flex flex-col p-6 sm:p-8 relative">
+            <div class="absolute top-0 left-0 w-full h-1 bg-white/5">
+                <div id="progress-bar" class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500" style="width: 0%"></div>
+            </div>
+
+            <div class="flex justify-between items-end mb-4 mt-2">
+                <div class="flex items-baseline gap-2">
+                    <span class="text-3xl font-bold" id="q-current">1</span>
+                    <span class="text-sm text-gray-500 font-medium">/ 10</span>
+                </div>
+                <div class="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-bold uppercase tracking-wider max-w-[150px] truncate" id="game-topic-badge">Topic</div>
+            </div>
+
+            <div class="bg-white/5 rounded-2xl p-6 border border-white/10 mb-4 shadow-lg min-h-[130px] flex items-center justify-center text-center relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                <p id="question-text" class="text-lg sm:text-xl font-medium leading-relaxed text-slate-100"></p>
+            </div>
+            
+            <!-- LIFELINES -->
+            <div class="flex justify-end mb-4" id="lifeline-container">
+                <button onclick="useLifeline5050()" id="btn-5050" class="px-4 py-2 rounded-lg bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/50 text-sm font-bold text-purple-200 flex items-center gap-2 transition-all btn-hover">
+                    <i class="fa-solid fa-star-half-stroke"></i>
+                    50/50
+                </button>
+            </div>
+
+            <div id="options-container" class="grid grid-cols-1 gap-3 mb-6"></div>
+
+            <div id="feedback-area" class="mt-auto hidden pop-in">
+                <div class="p-4 rounded-xl bg-slate-800 border border-white/10 relative overflow-hidden">
+                    <div id="feedback-color-strip" class="absolute left-0 top-0 bottom-0 w-1 bg-gray-500"></div>
+                    <div class="flex justify-between items-start gap-4">
+                        <div>
+                            <h4 id="feedback-title" class="font-bold text-lg mb-1">Result</h4>
+                            <p id="feedback-text" class="text-sm text-gray-300 leading-relaxed"></p>
+                            <div id="points-earned-display" class="mt-2 text-sm font-bold text-yellow-400 hidden">
+                                +<span id="points-val">0</span> Points
+                            </div>
+                        </div>
+                        <button onclick="nextQuestion()" id="next-btn" class="px-6 py-3 bg-white text-slate-900 font-bold rounded-lg hover:bg-gray-200 transition-colors shrink-0">Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: ROUND SUMMARY (Solo & Versus Results) -->
+        <div id="view-end" class="hidden flex-1 flex flex-col items-center justify-center p-8 text-center pop-in">
+            <!-- Dynamic Icon based on win state -->
+            <div id="end-icon-container" class="w-24 h-24 rounded-full bg-gradient-to-tr from-green-400 to-emerald-600 flex items-center justify-center shadow-lg mb-6">
+                <i class="fa-solid fa-flag-checkered text-4xl text-white"></i>
+            </div>
+            
+            <h2 id="end-title" class="text-3xl font-bold mb-1">Round Complete!</h2>
+            <p id="end-subtitle" class="text-gray-400 mb-8">Great job, <span id="end-player-name" class="text-indigo-300"></span>.</p>
+            
+            <!-- SOLO STATS -->
+            <div id="solo-stats" class="grid grid-cols-2 gap-4 w-full max-w-sm mb-8">
+                <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
+                    <div class="text-xs text-gray-400 uppercase font-bold mb-1">Total Score</div>
+                    <div class="text-3xl font-bold text-indigo-400" id="end-score">0</div>
+                </div>
+                <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
+                    <div class="text-xs text-gray-400 uppercase font-bold mb-1">Correct</div>
+                    <div class="text-3xl font-bold text-green-400" id="end-correct">0/10</div>
+                </div>
+            </div>
+
+            <!-- VERSUS STATS (Hidden by default) -->
+            <div id="versus-stats" class="hidden w-full max-w-sm mb-8 space-y-3">
+                <div class="bg-indigo-900/30 p-4 rounded-2xl border border-indigo-500/30 flex justify-between items-center relative overflow-hidden" id="p1-result-card">
+                    <div class="flex flex-col items-start z-10">
+                        <span class="text-xs text-indigo-300 font-bold uppercase" id="res-p1-name">Player 1</span>
+                        <span class="text-2xl font-bold text-white" id="res-p1-score">0</span>
+                    </div>
+                    <div class="text-right z-10">
+                        <span class="text-xs text-gray-400">Correct</span>
+                        <div class="font-mono text-white" id="res-p1-correct">0/10</div>
+                    </div>
+                </div>
+
+                <div class="bg-purple-900/30 p-4 rounded-2xl border border-purple-500/30 flex justify-between items-center relative overflow-hidden" id="p2-result-card">
+                    <div class="flex flex-col items-start z-10">
+                        <span class="text-xs text-purple-300 font-bold uppercase" id="res-p2-name">Player 2</span>
+                        <span class="text-2xl font-bold text-white" id="res-p2-score">0</span>
+                    </div>
+                    <div class="text-right z-10">
+                        <span class="text-xs text-gray-400">Correct</span>
+                        <div class="font-mono text-white" id="res-p2-correct">0/10</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col w-full max-w-xs gap-3">
+                <button onclick="saveAndReset()" class="px-6 py-4 bg-slate-700 rounded-xl font-bold hover:bg-slate-600 btn-hover border border-white/10 flex items-center justify-between group">
+                    <span>Main Menu</span>
+                    <i class="fa-solid fa-house text-gray-400 group-hover:text-white transition-colors"></i>
+                </button>
+                <button id="btn-next-round" onclick="continueStreak()" class="px-6 py-4 bg-indigo-600 rounded-xl font-bold hover:bg-indigo-500 btn-hover flex items-center justify-between group">
+                    <span>Next Round</span>
+                    <i class="fa-solid fa-forward text-indigo-200 group-hover:text-white transition-colors"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- LEGAL MODAL -->
+    <div id="legal-modal" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-2xl relative">
+            <button onclick="toggleLegal(false)" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <h3 class="text-xl font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-indigo-400"></i> Legal & Safety</h3>
+            <div class="space-y-4 text-xs text-gray-300 leading-relaxed max-h-[60vh] overflow-y-auto pr-2">
+                <p><strong class="text-white">1. AI Generation:</strong> Content is generated by AI for entertainment. Facts may occasionally be inaccurate.</p>
+                <p><strong class="text-white">2. Safety:</strong> We filter NSFW/Hate speech. Generated content is intended to be PG-13.</p>
+                <p><strong class="text-white">3. Trademarks:</strong> All brands mentioned belong to their owners. No endorsement implied.</p>
+            </div>
+            <button onclick="toggleLegal(false)" class="w-full mt-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg font-bold text-sm">I Understand</button>
+        </div>
+    </div>
+
+    <script>
+        // --- API CONFIGURATION ---
+        // IMPORTANT: PASTE YOUR GOOGLE GEMINI API KEY INSIDE THE QUOTES BELOW
+        const apiKey = "AIzaSyAVTtJj1fCryNDcEZxu3Q6r8pw1neLLP-8"; 
+        
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        const QUESTIONS_PER_ROUND = 10;
+
+        // --- TOPIC GENERATOR CONFIG ---
+        const MASTER_TOPICS = [
+            "Ancient Egypt", "Space Exploration", "90s Music", "Harry Potter", 
+            "World Capitals", "Superheroes", "The Office (US)", "Video Games", 
+            "Marine Biology", "Greek Mythology", "Basketball", "Anime", 
+            "Cyberpunk Movies", "Classic Cars", "Cooking & Cuisine", "World War II",
+            "Dinosaurs", "Tech History", "Famous Painters", "Star Wars"
+        ];
+
+        // --- AUDIO ENGINE ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let soundEnabled = true;
+
+        function playTone(freq, type, duration, vol = 0.1) {
+            if (!soundEnabled) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        const sounds = {
+            click: () => playTone(800, 'sine', 0.1, 0.05),
+            success: () => {
+                playTone(600, 'sine', 0.1, 0.1);
+                setTimeout(() => playTone(900, 'sine', 0.2, 0.1), 100);
+            },
+            fail: () => {
+                playTone(300, 'sawtooth', 0.3, 0.1);
+                setTimeout(() => playTone(200, 'sawtooth', 0.4, 0.1), 150);
+            },
+            win: () => {
+                [400, 500, 600, 800].forEach((f, i) => setTimeout(() => playTone(f, 'square', 0.2, 0.1), i * 100));
+            }
+        };
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.querySelector('#sound-toggle i');
+            icon.className = soundEnabled ? "fa-solid fa-volume-high" : "fa-solid fa-volume-xmark";
+        }
+
+        function showToast(msg, isError = false) {
+            const container = document.getElementById('toast-container');
+            const el = document.createElement('div');
+            el.className = 'toast';
+            if (isError) el.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+            el.innerHTML = `
+                <i class="fa-solid ${isError ? 'fa-triangle-exclamation text-red-400' : 'fa-info-circle text-indigo-400'}"></i>
+                <span>${msg}</span>
+            `;
+            container.appendChild(el);
+            setTimeout(() => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(10px)';
+                setTimeout(() => el.remove(), 300);
+            }, 3000);
+        }
+
+        // --- GAME STATE ---
+        let state = {
+            mode: 'solo', // 'solo' or 'versus'
+            currentPlayer: 1, // 1 or 2
+            
+            p1Name: "Player 1",
+            p2Name: "Player 2",
+            
+            p1Score: 0,
+            p2Score: 0,
+            
+            p1Correct: 0,
+            p2Correct: 0,
+
+            topic: "",
+            score: 0, // Current active score for HUD
+            streak: 0,
+            
+            roundQuestions: [],
+            currentQIndex: 0, 
+            questionHistory: [], // Holds all question text to prevent dupes in a session
+            isFetching: false,
+            correctInRound: 0,
+            lifelineUsed: false
+        };
+
+        const els = {
+            screens: {
+                start: document.getElementById('view-start'),
+                loading: document.getElementById('view-loading'),
+                intermission: document.getElementById('view-intermission'),
+                game: document.getElementById('view-game'),
+                end: document.getElementById('view-end')
+            },
+            inputs: {
+                name: document.getElementById('player-name'),
+                name2: document.getElementById('player2-name'),
+                topic: document.getElementById('topic-input')
+            },
+            hud: {
+                container: document.getElementById('hud'),
+                scoreLabel: document.getElementById('player-turn-label'),
+                score: document.getElementById('score-val'),
+                streak: document.getElementById('streak-val'),
+                progress: document.getElementById('progress-bar'),
+                currentQ: document.getElementById('q-current'),
+                topicBadge: document.getElementById('game-topic-badge')
+            },
+            game: {
+                question: document.getElementById('question-text'),
+                options: document.getElementById('options-container'),
+                feedbackArea: document.getElementById('feedback-area'),
+                feedbackTitle: document.getElementById('feedback-title'),
+                feedbackText: document.getElementById('feedback-text'),
+                feedbackStrip: document.getElementById('feedback-color-strip'),
+                pointsDisplay: document.getElementById('points-earned-display'),
+                pointsVal: document.getElementById('points-val'),
+                lifelineBtn: document.getElementById('btn-5050')
+            },
+            end: {
+                title: document.getElementById('end-title'),
+                subtitle: document.getElementById('end-subtitle'),
+                name: document.getElementById('end-player-name'),
+                score: document.getElementById('end-score'),
+                correct: document.getElementById('end-correct'),
+                soloStats: document.getElementById('solo-stats'),
+                versusStats: document.getElementById('versus-stats'),
+                iconContainer: document.getElementById('end-icon-container'),
+                btnNext: document.getElementById('btn-next-round')
+            },
+            intermission: {
+                score: document.getElementById('intermission-score'),
+                nextName: document.getElementById('intermission-next-name')
+            },
+            leaderboard: document.getElementById('mini-leaderboard'),
+            suggestions: document.getElementById('suggestions-container'),
+            modal: document.getElementById('legal-modal')
+        };
+
+        window.onload = () => {
+            loadLeaderboard();
+            generateSuggestions();
+            const savedName = localStorage.getItem('trivia_last_name');
+            if (savedName) els.inputs.name.value = savedName;
+            document.body.addEventListener('click', () => { if(audioCtx.state === 'suspended') audioCtx.resume(); }, {once:true});
+            setMode('solo'); // Default
+        };
+
+        function switchView(viewName) {
+            Object.values(els.screens).forEach(el => el.classList.add('hidden'));
+            els.screens[viewName].classList.remove('hidden');
+        }
+
+        function toggleLegal(show) {
+            if(show) els.modal.classList.remove('hidden');
+            else els.modal.classList.add('hidden');
+        }
+
+        function setTopic(t) {
+            els.inputs.topic.value = t;
+            sounds.click();
+        }
+
+        function setMode(mode) {
+            state.mode = mode;
+            const btnSolo = document.getElementById('mode-solo');
+            const btnVersus = document.getElementById('mode-versus');
+            const p2Input = document.getElementById('p2-input-group');
+            const badge = document.getElementById('mode-badge');
+            const leaderboard = document.getElementById('leaderboard-section');
+
+            if (mode === 'solo') {
+                btnSolo.className = "flex-1 py-2 rounded-lg text-sm font-bold bg-indigo-500 text-white shadow-lg transition-all";
+                btnVersus.className = "flex-1 py-2 rounded-lg text-sm font-bold text-gray-400 hover:text-white transition-all";
+                p2Input.classList.add('hidden');
+                badge.textContent = "Ranked Mode";
+                leaderboard.classList.remove('hidden');
+            } else {
+                btnSolo.className = "flex-1 py-2 rounded-lg text-sm font-bold text-gray-400 hover:text-white transition-all";
+                btnVersus.className = "flex-1 py-2 rounded-lg text-sm font-bold bg-purple-600 text-white shadow-lg transition-all";
+                p2Input.classList.remove('hidden');
+                badge.textContent = "Versus Mode";
+                leaderboard.classList.add('hidden');
+            }
+        }
+
+        function generateSuggestions() {
+            const container = els.suggestions;
+            container.innerHTML = '';
+            
+            const lastTopic = localStorage.getItem('trivia_last_topic');
+            let topicsPool = [...MASTER_TOPICS];
+            
+            let selectedTopics = [];
+            
+            if (lastTopic) {
+                selectedTopics.push(lastTopic);
+                topicsPool = topicsPool.filter(t => t !== lastTopic);
+            }
+
+            topicsPool.sort(() => Math.random() - 0.5);
+            
+            while(selectedTopics.length < 4 && topicsPool.length > 0) {
+                selectedTopics.push(topicsPool.pop());
+            }
+
+            selectedTopics.sort(() => Math.random() - 0.5);
+
+            selectedTopics.forEach(topic => {
+                const btn = document.createElement('button');
+                btn.className = "flex-1 py-4 px-4 bg-gradient-to-br from-white/5 to-white/10 hover:from-indigo-500/20 hover:to-purple-500/20 border border-white/10 hover:border-indigo-400/50 rounded-xl text-sm font-bold text-gray-300 hover:text-white transition-all shadow-lg hover:shadow-indigo-500/20 flex items-center justify-center gap-2 group relative overflow-hidden";
+                
+                let indicator = "";
+                if (topic === lastTopic) {
+                     indicator = `<span class="absolute top-1 right-1 w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>`;
+                }
+
+                btn.innerHTML = `
+                    ${indicator}
+                    <i class="fa-solid fa-lightbulb text-indigo-400 group-hover:text-indigo-300 transition-colors"></i>
+                    <span class="truncate">${topic}</span>
+                `;
+                btn.onclick = () => setTopic(topic);
+                container.appendChild(btn);
+            });
+        }
+
+        function updateHUD() {
+            els.hud.score.textContent = state.score.toLocaleString();
+            els.hud.streak.textContent = state.streak;
+            els.hud.currentQ.textContent = state.currentQIndex + 1;
+            const pct = ((state.currentQIndex) / QUESTIONS_PER_ROUND) * 100;
+            els.hud.progress.style.width = `${pct}%`;
+
+            if (state.mode === 'versus') {
+                els.hud.scoreLabel.textContent = state.currentPlayer === 1 ? "P1 Score" : "P2 Score";
+                els.hud.scoreLabel.className = state.currentPlayer === 1 ? "text-xs text-indigo-400 uppercase font-bold" : "text-xs text-purple-400 uppercase font-bold";
+            } else {
+                els.hud.scoreLabel.textContent = "Score";
+                els.hud.scoreLabel.className = "text-xs text-gray-400 uppercase font-bold";
+            }
+        }
+
+        // --- LOGIC ---
+
+        async function initGame() {
+            sounds.click();
+            const name1 = els.inputs.name.value.trim() || "Player 1";
+            const name2 = els.inputs.name2.value.trim() || "Player 2";
+            const topic = els.inputs.topic.value.trim();
+            
+            if (!topic) { showToast("Please enter a topic!", true); return; }
+            if (!apiKey) { showToast("Please enter your API key first (marked IMPORTANT in the code).", true); return; }
+
+            localStorage.setItem('trivia_last_name', name1);
+            localStorage.setItem('trivia_last_topic', topic);
+            
+            state.topic = topic;
+            state.p1Name = name1;
+            state.p2Name = name2;
+            state.score = 0;
+            state.streak = 0;
+            state.questionHistory = [];
+            state.currentPlayer = 1;
+            
+            // Reset versus stats
+            state.p1Score = 0;
+            state.p2Score = 0;
+            state.p1Correct = 0;
+            state.p2Correct = 0;
+            
+            els.hud.container.classList.remove('hidden');
+            els.hud.topicBadge.textContent = topic;
+
+            await startRound();
+        }
+
+        async function continueStreak() {
+            sounds.click();
+            await startRound();
+        }
+
+        async function startPlayer2Turn() {
+            sounds.click();
+            state.currentPlayer = 2;
+            state.score = 0;
+            state.streak = 0;
+            await startRound();
+        }
+
+        async function startRound() {
+            state.currentQIndex = 0;
+            state.correctInRound = 0;
+            state.roundQuestions = [];
+            state.lifelineUsed = false;
+            
+            const currentPlayerName = state.currentPlayer === 1 ? state.p1Name : state.p2Name;
+            
+            document.getElementById('loading-player').textContent = currentPlayerName;
+            document.getElementById('loading-player').className = state.currentPlayer === 1 ? "text-indigo-400 font-bold" : "text-purple-400 font-bold";
+            document.getElementById('loading-topic').textContent = state.topic;
+            switchView('loading');
+
+            await fetchQuestions();
+        }
+
+        async function fetchQuestions(retryCount = 0) {
+            if (state.isFetching) return;
+            state.isFetching = true;
+
+            const historyContext = state.questionHistory.slice(-60); // Check past questions to avoid dupes
+
+            const prompt = `
+                Role: Trivia Host. Topic: "${state.topic}".
+                Target Audience: General. Rating: PG-13.
+                STRICT PROTOCOLS:
+                1. If topic is inappropriate, ignore and use "General Knowledge".
+                2. EXCLUDE these past questions: ${JSON.stringify(historyContext)}.
+                3. The "q" field MUST NOT reveal the answer.
+                
+                Task: Generate ${QUESTIONS_PER_ROUND} UNIQUE multiple choice questions.
+                Output: JSON Array.
+                Schema: [{"q": "Question?", "opts": ["Opt1", "Opt2", "Opt3", "Opt4"], "ans": "Opt1", "exp": "Explanation."}]
+                IMPORTANT: "ans" MUST be the exact text of the correct option.
+            `;
+
+            try {
+                // Fetch implementation with exponential backoff
+                const maxRetries = 3;
+                let delay = 1000;
+                let response;
+
+                for (let i = 0; i < maxRetries; i++) {
+                    try {
+                        response = await fetch(API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                        });
+
+                        if (response.ok) break; // Success
+                        if (response.status === 429 && i < maxRetries - 1) { // Rate limit or transient error
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            delay *= 2;
+                            continue;
+                        }
+                        throw new Error(`API Error: ${response.status}`);
+                    } catch (e) {
+                        if (i === maxRetries - 1) throw e; // Re-throw final error
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        delay *= 2;
+                    }
+                }
+
+                if (!response || !response.ok) throw new Error("Failed to fetch questions after multiple retries.");
+                
+                const data = await response.json();
+                let text = data.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').trim();
+                const json = JSON.parse(text);
+                
+                if (!Array.isArray(json) || json.length < 5) throw new Error("Bad Data");
+
+                state.roundQuestions = json;
+                // Add new questions to history so P2 doesn't get them (or next round doesn't)
+                state.roundQuestions.forEach(q => state.questionHistory.push(q.q));
+
+                state.isFetching = false;
+                loadQuestion();
+
+            } catch (e) {
+                console.error("Question fetching failed:", e);
+                state.isFetching = false;
+                showToast("Failed to generate questions. Check API key and console for details.", true);
+                switchView('start');
+            }
+        }
+
+        function loadQuestion() {
+            if (state.currentQIndex >= state.roundQuestions.length) {
+                endRound();
+                return;
+            }
+
+            const q = state.roundQuestions[state.currentQIndex];
+            switchView('game');
+            updateHUD();
+
+            els.game.question.textContent = q.q;
+            els.game.feedbackArea.classList.add('hidden');
+            els.game.options.innerHTML = '';
+            els.game.lifelineBtn.disabled = state.lifelineUsed;
+
+            let opts = [...q.opts];
+            opts.sort(() => Math.random() - 0.5);
+
+            opts.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "w-full p-4 text-left bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all duration-200 relative overflow-hidden group option-btn";
+                btn.innerHTML = `<div class="w-2 h-2 rounded-full bg-white/20 absolute left-4 top-1/2 -translate-y-1/2 group-hover:bg-indigo-400 transition-colors"></div><span class="ml-6 font-medium text-slate-200 group-hover:text-white">${opt}</span>`;
+                btn.onclick = () => handleAnswer(btn, opt, q);
+                btn.dataset.value = opt; 
+                els.game.options.appendChild(btn);
+            });
+        }
+
+        function useLifeline5050() {
+            if (state.lifelineUsed) return;
+            
+            sounds.click();
+            const q = state.roundQuestions[state.currentQIndex];
+            const correctAns = normalizeAnswer(q.ans, q.opts);
+            const buttons = Array.from(els.game.options.querySelectorAll('button'));
+            
+            const wrongButtons = buttons.filter(btn => btn.dataset.value.trim() !== correctAns.trim());
+            
+            wrongButtons.sort(() => Math.random() - 0.5);
+            const toRemove = wrongButtons.slice(0, 2);
+            
+            toRemove.forEach(btn => btn.classList.add('removed-option'));
+            
+            state.lifelineUsed = true;
+            els.game.lifelineBtn.disabled = true;
+        }
+
+        function normalizeAnswer(ans, originalOpts) {
+            // Check if the answer is a single letter (A, B, C, D)
+            if (ans.length === 1 && /^[A-D]$/i.test(ans)) {
+                // Find the index based on the letter (A=0, B=1, etc.)
+                // This assumes the originalOpts array contains options in the order A, B, C, D, even if randomized for display.
+                // Since the API returns {"q":..., "opts": ["A","B","C","D"], "ans": "B"}, we must be careful.
+                // For simplicity in a self-contained environment, we rely on matching the *text* of the option.
+                // If the API returns 'A', 'B', 'C', 'D' as option text, this is fine.
+                // If the API returns 'The answer is X' and ans is 'The answer is X', this is fine.
+                return ans;
+            }
+            return ans;
+        }
+
+        function handleAnswer(selectedBtn, selectedOpt, qObj) {
+            const allBtns = els.game.options.querySelectorAll('button');
+            allBtns.forEach(b => { b.disabled = true; b.classList.add('cursor-default'); });
+            els.game.lifelineBtn.disabled = true;
+
+            const correctAns = normalizeAnswer(qObj.ans, qObj.opts);
+            const isCorrect = (selectedOpt.trim() === correctAns.trim());
+            
+            els.game.feedbackArea.classList.remove('hidden');
+            els.game.feedbackText.textContent = qObj.exp || "";
+
+            if (isCorrect) {
+                sounds.success();
+                selectedBtn.classList.add('correct-answer');
+                const basePoints = 100;
+                const pointsEarned = Math.round(basePoints * Math.pow(1.2, state.streak));
+                
+                state.score += pointsEarned;
+                state.streak++;
+                state.correctInRound++;
+                
+                els.game.feedbackTitle.textContent = "Correct!";
+                els.game.feedbackTitle.className = "font-bold text-lg mb-1 text-green-400";
+                els.game.feedbackStrip.className = "absolute left-0 top-0 bottom-0 w-1 bg-green-500";
+                els.game.pointsDisplay.classList.remove('hidden');
+                els.game.pointsVal.textContent = pointsEarned;
+                
+                showFloatingPoints(selectedBtn, pointsEarned);
+            } else {
+                sounds.fail();
+                selectedBtn.classList.add('wrong-answer');
+                allBtns.forEach(b => {
+                    if(b.dataset.value.trim() === correctAns.trim()) b.classList.add('correct-answer');
+                    else if(b !== selectedBtn) b.classList.add('unselected-dim');
+                });
+
+                state.streak = 0;
+                els.game.feedbackTitle.textContent = "Incorrect";
+                els.game.feedbackTitle.className = "font-bold text-lg mb-1 text-red-400";
+                els.game.feedbackStrip.className = "absolute left-0 top-0 bottom-0 w-1 bg-red-500";
+                els.game.pointsDisplay.classList.add('hidden');
+            }
+
+            updateHUD();
+            // Scroll to the feedback area on mobile devices
+            setTimeout(() => { document.getElementById('feedback-area').scrollIntoView({behavior: 'smooth', block: 'nearest'}); }, 100);
+        }
+
+        function showFloatingPoints(targetBtn, amount) {
+            const rect = targetBtn.getBoundingClientRect();
+            const floatEl = document.createElement('div');
+            floatEl.textContent = `+${amount}`;
+            floatEl.className = "points-float text-xl";
+            // Calculate position relative to the viewport
+            floatEl.style.left = (rect.left + rect.width / 2) + "px";
+            floatEl.style.top = rect.top + "px";
+            document.body.appendChild(floatEl);
+            setTimeout(() => floatEl.remove(), 1000);
+        }
+
+        function nextQuestion() {
+            sounds.click();
+            state.currentQIndex++;
+            loadQuestion();
+        }
+
+        function endRound() {
+            sounds.win();
+            
+            if (state.mode === 'versus') {
+                if (state.currentPlayer === 1) {
+                    // STORE P1 DATA AND SWITCH
+                    state.p1Score = state.score;
+                    state.p1Correct = state.correctInRound;
+                    
+                    els.intermission.score.textContent = state.p1Score.toLocaleString();
+                    els.intermission.nextName.textContent = state.p2Name;
+                    
+                    switchView('intermission');
+                    return;
+                } else {
+                    // P2 FINISHED
+                    state.p2Score = state.score;
+                    state.p2Correct = state.correctInRound;
+                    
+                    // Show Comparison
+                    els.end.soloStats.classList.add('hidden');
+                    els.end.versusStats.classList.remove('hidden');
+                    els.end.btnNext.classList.add('hidden'); // No next round in versus mode directly
+
+                    // Update Card Data
+                    document.getElementById('res-p1-name').textContent = state.p1Name;
+                    document.getElementById('res-p1-score').textContent = state.p1Score.toLocaleString();
+                    document.getElementById('res-p1-correct').textContent = `${state.p1Correct}/${QUESTIONS_PER_ROUND}`;
+
+                    document.getElementById('res-p2-name').textContent = state.p2Name;
+                    document.getElementById('res-p2-score').textContent = state.p2Score.toLocaleString();
+                    document.getElementById('res-p2-correct').textContent = `${state.p2Correct}/${QUESTIONS_PER_ROUND}`;
+
+                    // Highlight Winner
+                    const p1Card = document.getElementById('p1-result-card');
+                    const p2Card = document.getElementById('p2-result-card');
+                    
+                    p1Card.className = "p-4 rounded-2xl border flex justify-between items-center relative overflow-hidden transition-all";
+                    p2Card.className = "p-4 rounded-2xl border flex justify-between items-center relative overflow-hidden transition-all";
+
+                    if (state.p1Score > state.p2Score) {
+                        els.end.title.textContent = `${state.p1Name} Wins!`;
+                        els.end.subtitle.textContent = `Victory by ${Math.abs(state.p1Score - state.p2Score)} points`;
+                        p1Card.classList.add('bg-green-500/20', 'border-green-500');
+                        p2Card.classList.add('bg-white/5', 'border-white/10', 'opacity-50');
+                    } else if (state.p2Score > state.p1Score) {
+                        els.end.title.textContent = `${state.p2Name} Wins!`;
+                        els.end.subtitle.textContent = `Victory by ${Math.abs(state.p2Score - state.p1Score)} points`;
+                        p2Card.classList.add('bg-green-500/20', 'border-green-500');
+                        p1Card.classList.add('bg-white/5', 'border-white/10', 'opacity-50');
+                    } else {
+                        els.end.title.textContent = "It's a Tie!";
+                        els.end.subtitle.textContent = "Incredible match!";
+                        p1Card.classList.add('bg-indigo-500/20', 'border-indigo-500');
+                        p2Card.classList.add('bg-purple-500/20', 'border-purple-500');
+                    }
+                    
+                    switchView('end');
+                }
+            } else {
+                // SOLO END
+                els.end.title.textContent = "Round Complete!";
+                els.end.subtitle.textContent = `Great job, ${state.p1Name}.`;
+                els.end.soloStats.classList.remove('hidden');
+                els.end.versusStats.classList.add('hidden');
+                els.end.btnNext.classList.remove('hidden');
+
+                els.end.score.textContent = state.score.toLocaleString();
+                els.end.correct.textContent = `${state.correctInRound}/${QUESTIONS_PER_ROUND}`;
+                
+                switchView('end');
+            }
+        }
+
+        function saveAndReset() {
+            sounds.click();
+            
+            // Save logic (Solo only for now to keep leaderboard clean)
+            if (state.mode === 'solo' && state.score > 0) {
+                const history = JSON.parse(localStorage.getItem('trivia_scores') || '[]');
+                history.push({
+                    name: state.p1Name,
+                    score: state.score,
+                    topic: state.topic,
+                    date: new Date().toLocaleDateString()
+                });
+                history.sort((a, b) => b.score - a.score);
+                const top5 = history.slice(0, 5);
+                localStorage.setItem('trivia_scores', JSON.stringify(top5));
+            }
+
+            // Reset UI
+            loadLeaderboard();
+            generateSuggestions(); 
+            els.hud.container.classList.add('hidden');
+            state.score = 0;
+            state.streak = 0;
+            switchView('start');
+        }
+
+        function loadLeaderboard() {
+            const history = JSON.parse(localStorage.getItem('trivia_scores') || '[]');
+            const container = els.leaderboard;
+            container.innerHTML = '';
+
+            if (history.length === 0) {
+                container.innerHTML = '<div class="p-3 rounded-lg bg-white/5 text-gray-400 text-center italic">No scores recorded yet.</div>';
+                return;
+            }
+
+            history.forEach((entry, i) => {
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center p-3 rounded-lg bg-white/5 border border-white/5";
+                
+                let iconColor = "text-gray-500";
+                if(i === 0) iconColor = "text-yellow-400";
+                if(i === 1) iconColor = "text-gray-300";
+                if(i === 2) iconColor = "text-amber-600";
+
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="font-bold w-4 ${iconColor}">#${i+1}</span>
+                        <div>
+                            <div class="font-bold text-white">${entry.name}</div>
+                            <div class="text-[10px] text-gray-400 uppercase tracking-wide">${entry.topic}</div>
+                        </div>
+                    </div>
+                    <div class="font-mono font-bold text-indigo-300">${entry.score.toLocaleString()}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -16,10 +16,10 @@
             overflow-x: hidden;
             -webkit-tap-highlight-color: transparent;
             display: flex;
-            flex-direction: column; /* Ensure body children stack */
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 4px; /* Reduced padding to center the main container */
+            padding: 4px;
         }
         
         .glass-panel {
@@ -27,7 +27,7 @@
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 25px 50px -12p x rgba(0, 0, 0, 0.5);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
 
         .glass-input {
@@ -75,7 +75,6 @@
         }
         .unselected-dim { opacity: 0.3; filter: grayscale(1); transition: opacity 0.5s; }
         
-        /* 50/50 Removed State */
         .removed-option {
             opacity: 0;
             pointer-events: none;
@@ -99,7 +98,6 @@
         
         .modal-backdrop { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px); }
 
-        /* Toast Notification */
         #toast-container {
             position: fixed;
             bottom: 20px;
@@ -121,22 +119,6 @@
             gap: 10px;
             font-size: 0.9rem;
             animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-
-        /* Ad Banner Placeholder Styling */
-        #admob-banner {
-            width: 100%;
-            height: 50px; /* Standard banner height */
-            margin-top: 10px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: rgba(0,0,0,0.2);
-            color: #ccc;
-            font-size: 0.8rem;
-            border-radius: 8px;
-            opacity: 0; /* Hidden until the app environment loads it */
-            transition: opacity 0.3s;
         }
     </style>
 </head>
@@ -168,16 +150,23 @@
                 </div>
             </div>
             
-            <!-- HUD -->
-            <div id="hud" class="hidden flex gap-3">
-                <div class="flex flex-col items-end">
-                    <span id="player-turn-label" class="text-xs text-gray-400 uppercase font-bold">Score</span>
-                    <span id="score-val" class="font-mono text-xl font-bold text-indigo-400">0</span>
-                </div>
-                <div class="w-px bg-white/10 h-8 self-center"></div>
-                <div class="flex flex-col items-end">
-                    <span class="text-xs text-gray-400 uppercase font-bold">Streak</span>
-                    <span id="streak-val" class="font-mono text-xl font-bold text-orange-400">0</span>
+            <div class="flex gap-3 items-center">
+                 <!-- Settings Button -->
+                 <button onclick="openSettings()" class="text-gray-400 hover:text-white p-2">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+                
+                <!-- HUD -->
+                <div id="hud" class="hidden flex gap-3">
+                    <div class="flex flex-col items-end">
+                        <span id="player-turn-label" class="text-xs text-gray-400 uppercase font-bold">Score</span>
+                        <span id="score-val" class="font-mono text-xl font-bold text-indigo-400">0</span>
+                    </div>
+                    <div class="w-px bg-white/10 h-8 self-center"></div>
+                    <div class="flex flex-col items-end">
+                        <span class="text-xs text-gray-400 uppercase font-bold">Streak</span>
+                        <span id="streak-val" class="font-mono text-xl font-bold text-orange-400">0</span>
+                    </div>
                 </div>
             </div>
         </header>
@@ -242,7 +231,7 @@
                 </button>
             </div>
 
-            <!-- Leaderboard (Solo Only Logic applied later) -->
+            <!-- Leaderboard -->
             <div id="leaderboard-section" class="mt-8 pt-8 border-t border-white/5">
                 <div class="flex items-center gap-2 mb-4">
                     <i class="fa-solid fa-trophy text-yellow-500"></i>
@@ -413,117 +402,40 @@
         </div>
     </div>
 
-    <!-- AD BANNER CONTAINER -->
-    <div id="admob-banner" class="w-full max-w-3xl">
-        Waiting for AdMob initialization...
+    <!-- API KEY MODAL -->
+    <div id="api-modal" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-2xl relative">
+            <button onclick="toggleApiModal(false)" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <h3 class="text-xl font-bold mb-2 flex items-center gap-2">
+                <i class="fa-solid fa-key text-yellow-400"></i> API Setup
+            </h3>
+            <p class="text-sm text-gray-400 mb-4">Enter your Gemini API key to start generating infinite trivia.</p>
+            
+            <input type="password" id="api-key-input" 
+                class="w-full glass-input rounded-xl px-4 py-3 text-sm mb-4 focus:outline-none focus:border-indigo-500 text-white" 
+                placeholder="Paste API Key here (AIza...)">
+            
+            <div class="flex justify-end gap-2">
+                <button onclick="toggleApiModal(false)" class="px-4 py-2 text-sm text-gray-400 hover:text-white">Cancel</button>
+                <button onclick="saveApiKey()" class="px-6 py-2 bg-indigo-600 rounded-lg font-bold text-sm hover:bg-indigo-500">Save Key</button>
+            </div>
+            <p class="text-[10px] text-gray-500 mt-4">Key is stored locally on your device only.</p>
+        </div>
     </div>
 
     <script>
         // --- API CONFIGURATION ---
-        // IMPORTANT: PASTE YOUR GOOGLE GEMINI API KEY INSIDE THE QUOTES BELOW
-        const apiKey = "AIzaSyBJ2zX-Iz3SsqeZNWpTDRSW-grPWqF9P-M"; 
+        // OPTION 1: Paste your key inside the quotes below if you want it hardcoded.
+        const HARDCODED_KEY = "AIzaSyBJ2zX-Iz3SsqeZNWpTDRSW-grPWqF9P-M"; 
         
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        // OPTION 2: Use the UI Setting (Managed automatically)
+        let storedKey = localStorage.getItem('trivia_gemini_key') || "";
+        
+        function getApiKey() {
+            return HARDCODED_KEY || storedKey;
+        }
+
         const QUESTIONS_PER_ROUND = 10;
-
-        // --- ADMOB CONFIGURATION (FOR CAPACITOR MOBILE APP) ---
-        // NOTE: This code relies on the 'capacitor-community/admob' plugin being installed.
-        const AdMobConfig = {
-            // YOUR PROVIDED APP ID: This is placed in the native AndroidManifest.xml and iOS Info.plist files.
-            APP_ID: "ca-app-pub-6053574162799348~6087903379", 
-            
-            // BANNER AD UNIT ID: Using the unit ID provided in the last user message.
-            BANNER_UNIT_ID: "ca-app-pub-6053574162799348/8159548856", 
-            
-            // INTERSTITIAL AD UNIT ID: Placeholder - You need to create a SEPARATE Interstitial Ad Unit ID on AdMob
-            // for the full-screen ads that show between rounds.
-            INTERSTITIAL_UNIT_ID: "ca-app-pub-6053574162799348/2222222222", 
-        };
-
-        // --- ADMOB FUNCTIONS ---
-
-        // Function to check if AdMob is available (i.e., running in a mobile wrapper)
-        function isAdMobAvailable() {
-            // Check if 'AdMob' object exists and has the necessary methods
-            return typeof AdMob !== 'undefined' && typeof AdMob.initialize === 'function';
-        }
-
-        // 1. Initialize the AdMob SDK
-        async function initializeAds() {
-            const bannerEl = document.getElementById('admob-banner');
-            if (!isAdMobAvailable()) {
-                // If not running in a mobile wrapper, show a preview message instead of errors
-                bannerEl.textContent = "AdMob Initialized (Preview Mode Only - Using Unit ID: " + AdMobConfig.BANNER_UNIT_ID.split('/')[1] + ")";
-                bannerEl.style.opacity = '1';
-                return; 
-            }
-
-            try {
-                // Request Tracking Authorization for iOS 14+
-                if (AdMob.requestTrackingAuthorization) {
-                    await AdMob.requestTrackingAuthorization();
-                }
-
-                await AdMob.initialize({
-                    requestTrackingAuthorization: true,
-                    // Note: The App ID is usually read from the native manifest files, but initialization is needed.
-                });
-                console.log("AdMob Initialized successfully.");
-                
-                // Start showing the banner ad immediately after successful initialization
-                showBannerAd();
-
-            } catch (e) {
-                console.error("AdMob Initialization Failed (likely network or native setup error):", e);
-                bannerEl.textContent = "Ad Loading Failed";
-                bannerEl.style.color = '#f87171';
-                bannerEl.style.opacity = '1';
-            }
-        }
-
-        // 2. Show a Banner Ad at the bottom
-        async function showBannerAd() {
-            if (!isAdMobAvailable()) return;
-            try {
-                await AdMob.showBanner({
-                    adId: AdMobConfig.BANNER_UNIT_ID,
-                    position: 'BOTTOM_CENTER',
-                    isTesting: false, // Set to true to use AdMob test unit IDs
-                    // The capacitor plugin handles showing the banner *over* the WebView
-                });
-                document.getElementById('admob-banner').style.opacity = '1'; // Indicate ad area is active
-                console.log("Banner Ad requested.");
-            } catch (e) {
-                console.warn("Banner Ad failed to show:", e);
-            }
-        }
-
-        // 3. Show a Full-Screen Interstitial Ad
-        async function showInterstitialAd() {
-            if (!isAdMobAvailable()) return;
-            // IMPORTANT: If you haven't replaced the INTERSTITIAL_UNIT_ID placeholder with a valid AdMob ID,
-            // this function will fail when building the native app.
-            if (AdMobConfig.INTERSTITIAL_UNIT_ID === "ca-app-pub-6053574162799348/2222222222") {
-                console.warn("Interstitial Ad skipped: Please replace the placeholder ID with your actual AdMob Interstitial Unit ID.");
-                return;
-            }
-            try {
-                // 1. Prepare/Load the Ad (pre-load before showing)
-                await AdMob.prepareInterstitial({
-                    adId: AdMobConfig.INTERSTITIAL_UNIT_ID,
-                    isTesting: false,
-                });
-
-                // 2. Show the loaded Ad
-                await AdMob.showInterstitial();
-                console.log("Interstitial Ad displayed.");
-            } catch (e) {
-                console.warn("Interstitial Ad failed to show (might be pre-loaded, not ready, or user closed):", e);
-            }
-        }
-
-
-        // --- TOPIC GENERATOR CONFIG ---
         const MASTER_TOPICS = [
             "Ancient Egypt", "Space Exploration", "90s Music", "Harry Potter", 
             "World Capitals", "Superheroes", "The Office (US)", "Video Games", 
@@ -617,569 +529,542 @@
             questionHistory: [], // Holds all question text to prevent dupes in a session
             isFetching: false,
             correctInRound: 0,
-            lifelineUsed: false
+            lifelineUsed: false,
+            roundPoints: 0
         };
 
         const els = {
-            screens: {
+            scoreVal: document.getElementById('score-val'),
+            streakVal: document.getElementById('streak-val'),
+            views: {
                 start: document.getElementById('view-start'),
                 loading: document.getElementById('view-loading'),
-                intermission: document.getElementById('view-intermission'),
                 game: document.getElementById('view-game'),
+                intermission: document.getElementById('view-intermission'),
                 end: document.getElementById('view-end')
             },
             inputs: {
-                name: document.getElementById('player-name'),
-                name2: document.getElementById('player2-name'),
+                p1Name: document.getElementById('player-name'),
+                p2Name: document.getElementById('player2-name'),
                 topic: document.getElementById('topic-input')
             },
-            hud: {
-                container: document.getElementById('hud'),
-                scoreLabel: document.getElementById('player-turn-label'),
-                score: document.getElementById('score-val'),
-                streak: document.getElementById('streak-val'),
-                progress: document.getElementById('progress-bar'),
-                currentQ: document.getElementById('q-current'),
-                topicBadge: document.getElementById('game-topic-badge')
-            },
+            hud: document.getElementById('hud'),
             game: {
-                question: document.getElementById('question-text'),
-                options: document.getElementById('options-container'),
+                currentQ: document.getElementById('q-current'),
+                topicBadge: document.getElementById('game-topic-badge'),
+                questionText: document.getElementById('question-text'),
+                optionsContainer: document.getElementById('options-container'),
+                progressBar: document.getElementById('progress-bar'),
                 feedbackArea: document.getElementById('feedback-area'),
                 feedbackTitle: document.getElementById('feedback-title'),
                 feedbackText: document.getElementById('feedback-text'),
-                feedbackStrip: document.getElementById('feedback-color-strip'),
                 pointsDisplay: document.getElementById('points-earned-display'),
                 pointsVal: document.getElementById('points-val'),
-                lifelineBtn: document.getElementById('btn-5050')
-            },
-            end: {
-                title: document.getElementById('end-title'),
-                subtitle: document.getElementById('end-subtitle'),
-                name: document.getElementById('end-player-name'),
-                score: document.getElementById('end-score'),
-                correct: document.getElementById('end-correct'),
-                soloStats: document.getElementById('solo-stats'),
-                versusStats: document.getElementById('versus-stats'),
-                iconContainer: document.getElementById('end-icon-container'),
-                btnNext: document.getElementById('btn-next-round')
-            },
-            intermission: {
-                score: document.getElementById('intermission-score'),
-                nextName: document.getElementById('intermission-next-name')
-            },
-            leaderboard: document.getElementById('mini-leaderboard'),
-            suggestions: document.getElementById('suggestions-container'),
-            modal: document.getElementById('legal-modal')
-        };
-
-        window.onload = () => {
-            loadLeaderboard();
-            generateSuggestions();
-            const savedName = localStorage.getItem('trivia_last_name');
-            if (savedName) els.inputs.name.value = savedName;
-            document.body.addEventListener('click', () => { if(audioCtx.state === 'suspended') audioCtx.resume(); }, {once:true});
-            setMode('solo'); // Default
-            
-            // Initialize AdMob integration
-            initializeAds();
-        };
-
-        function switchView(viewName) {
-            Object.values(els.screens).forEach(el => el.classList.add('hidden'));
-            els.screens[viewName].classList.remove('hidden');
-        }
-
-        function toggleLegal(show) {
-            if(show) els.modal.classList.remove('hidden');
-            else els.modal.classList.add('hidden');
-        }
-
-        function setTopic(t) {
-            els.inputs.topic.value = t;
-            sounds.click();
-        }
-
-        function setMode(mode) {
-            state.mode = mode;
-            const btnSolo = document.getElementById('mode-solo');
-            const btnVersus = document.getElementById('mode-versus');
-            const p2Input = document.getElementById('p2-input-group');
-            const badge = document.getElementById('mode-badge');
-            const leaderboard = document.getElementById('leaderboard-section');
-
-            if (mode === 'solo') {
-                btnSolo.className = "flex-1 py-2 rounded-lg text-sm font-bold bg-indigo-500 text-white shadow-lg transition-all";
-                btnVersus.className = "flex-1 py-2 rounded-lg text-sm font-bold text-gray-400 hover:text-white transition-all";
-                p2Input.classList.add('hidden');
-                badge.textContent = "Ranked Mode";
-                leaderboard.classList.remove('hidden');
-            } else {
-                btnSolo.className = "flex-1 py-2 rounded-lg text-sm font-bold text-gray-400 hover:text-white transition-all";
-                btnVersus.className = "flex-1 py-2 rounded-lg text-sm font-bold bg-purple-600 text-white shadow-lg transition-all";
-                p2Input.classList.remove('hidden');
-                badge.textContent = "Versus Mode";
-                leaderboard.classList.add('hidden');
+                nextBtn: document.getElementById('next-btn')
             }
-        }
+        };
+
+        // --- INIT ---
+        window.addEventListener('DOMContentLoaded', () => {
+            generateSuggestions();
+            els.inputs.p1Name.value = localStorage.getItem('trivia_p1') || "";
+            els.inputs.p2Name.value = localStorage.getItem('trivia_p2') || "";
+            updateHighScores();
+            
+            // Auto open settings if no key
+            if (!getApiKey()) {
+                setTimeout(() => toggleApiModal(true), 500);
+            }
+        });
 
         function generateSuggestions() {
-            const container = els.suggestions;
+            const container = document.getElementById('suggestions-container');
             container.innerHTML = '';
-            
-            const lastTopic = localStorage.getItem('trivia_last_topic');
-            let topicsPool = [...MASTER_TOPICS];
-            
-            let selectedTopics = [];
-            
-            if (lastTopic) {
-                selectedTopics.push(lastTopic);
-                topicsPool = topicsPool.filter(t => t !== lastTopic);
-            }
-
-            topicsPool.sort(() => Math.random() - 0.5);
-            
-            while(selectedTopics.length < 4 && topicsPool.length > 0) {
-                selectedTopics.push(topicsPool.pop());
-            }
-
-            selectedTopics.sort(() => Math.random() - 0.5);
-
-            selectedTopics.forEach(topic => {
+            const shuffled = [...MASTER_TOPICS].sort(() => 0.5 - Math.random());
+            shuffled.slice(0, 4).forEach(topic => {
                 const btn = document.createElement('button');
-                btn.className = "flex-1 py-4 px-4 bg-gradient-to-br from-white/5 to-white/10 hover:from-indigo-500/20 hover:to-purple-500/20 border border-white/10 hover:border-indigo-400/50 rounded-xl text-sm font-bold text-gray-300 hover:text-white transition-all shadow-lg hover:shadow-indigo-500/20 flex items-center justify-center gap-2 group relative overflow-hidden";
-                
-                let indicator = "";
-                if (topic === lastTopic) {
-                     indicator = `<span class="absolute top-1 right-1 w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>`;
-                }
-
-                btn.innerHTML = `
-                    ${indicator}
-                    <i class="fa-solid fa-lightbulb text-indigo-400 group-hover:text-indigo-300 transition-colors"></i>
-                    <span class="truncate">${topic}</span>
-                `;
-                btn.onclick = () => setTopic(topic);
+                btn.className = "p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-xs font-semibold text-gray-300 hover:text-white transition-colors text-left truncate";
+                btn.textContent = topic;
+                btn.onclick = () => {
+                    els.inputs.topic.value = topic;
+                    sounds.click();
+                };
                 container.appendChild(btn);
             });
         }
 
-        function updateHUD() {
-            els.hud.score.textContent = state.score.toLocaleString();
-            els.hud.streak.textContent = state.streak;
-            els.hud.currentQ.textContent = state.currentQIndex + 1;
-            const pct = ((state.currentQIndex) / QUESTIONS_PER_ROUND) * 100;
-            els.hud.progress.style.width = `${pct}%`;
-
-            if (state.mode === 'versus') {
-                els.hud.scoreLabel.textContent = state.currentPlayer === 1 ? "P1 Score" : "P2 Score";
-                els.hud.scoreLabel.className = state.currentPlayer === 1 ? "text-xs text-indigo-400 uppercase font-bold" : "text-xs text-purple-400 uppercase font-bold";
+        // --- API & SETTINGS ---
+        function toggleApiModal(show) {
+            const modal = document.getElementById('api-modal');
+            const input = document.getElementById('api-key-input');
+            if (show) {
+                input.value = storedKey;
+                modal.classList.remove('hidden');
             } else {
-                els.hud.scoreLabel.textContent = "Score";
-                els.hud.scoreLabel.className = "text-xs text-gray-400 uppercase font-bold";
+                modal.classList.add('hidden');
             }
         }
 
-        // --- LOGIC ---
+        function openSettings() {
+            toggleApiModal(true);
+        }
 
-        async function initGame() {
+        function saveApiKey() {
+            const input = document.getElementById('api-key-input');
+            const val = input.value.trim();
+            if (val) {
+                storedKey = val;
+                localStorage.setItem('trivia_gemini_key', val);
+                showToast("API Key Saved");
+                toggleApiModal(false);
+            } else {
+                showToast("Please enter a valid key", true);
+            }
+        }
+
+        // --- NAVIGATION ---
+        function switchView(viewName) {
+            Object.values(els.views).forEach(el => el.classList.add('hidden'));
+            els.views[viewName].classList.remove('hidden');
+            
+            if (viewName === 'game' || viewName === 'loading') {
+                els.hud.classList.remove('hidden');
+            } else {
+                els.hud.classList.add('hidden');
+            }
+        }
+
+        function toggleLegal(show) {
+            const el = document.getElementById('legal-modal');
+            if (show) el.classList.remove('hidden');
+            else el.classList.add('hidden');
+        }
+
+        function setMode(mode) {
             sounds.click();
-            const name1 = els.inputs.name.value.trim() || "Player 1";
-            const name2 = els.inputs.name2.value.trim() || "Player 2";
-            const topic = els.inputs.topic.value.trim();
+            state.mode = mode;
+            document.getElementById('mode-solo').className = mode === 'solo' 
+                ? "flex-1 py-2 rounded-lg text-sm font-bold bg-indigo-500 text-white shadow-lg transition-all"
+                : "flex-1 py-2 rounded-lg text-sm font-bold text-gray-400 hover:text-white transition-all";
             
-            if (!topic) { showToast("Please enter a topic!", true); return; }
-            if (!apiKey) { showToast("Please enter your API key first (marked IMPORTANT in the code).", true); return; }
+            document.getElementById('mode-versus').className = mode === 'versus'
+                ? "flex-1 py-2 rounded-lg text-sm font-bold bg-purple-500 text-white shadow-lg transition-all"
+                : "flex-1 py-2 rounded-lg text-sm font-bold text-gray-400 hover:text-white transition-all";
 
-            localStorage.setItem('trivia_last_name', name1);
-            localStorage.setItem('trivia_last_topic', topic);
+            const p2Group = document.getElementById('p2-input-group');
+            if (mode === 'versus') {
+                p2Group.classList.remove('hidden');
+                p2Group.classList.add('pop-in');
+            } else {
+                p2Group.classList.add('hidden');
+            }
+        }
+
+        // --- GAME LOGIC ---
+
+        function initGame() {
+            sounds.click();
+            const p1 = els.inputs.p1Name.value.trim() || "Player 1";
+            const p2 = els.inputs.p2Name.value.trim() || "Player 2";
+            const topic = els.inputs.topic.value.trim();
+
+            if (!topic) {
+                showToast("Please enter a topic!", true);
+                return;
+            }
             
-            state.topic = topic;
-            state.p1Name = name1;
-            state.p2Name = name2;
-            state.score = 0;
-            state.streak = 0;
-            state.questionHistory = [];
-            state.currentPlayer = 1;
-            
-            // Reset versus stats
+            if (!getApiKey()) {
+                toggleApiModal(true);
+                showToast("API Key Required to play", true);
+                return;
+            }
+
+            // Save preferences
+            localStorage.setItem('trivia_p1', p1);
+            localStorage.setItem('trivia_p2', p2);
+
+            // Reset State
+            state.p1Name = p1;
+            state.p2Name = p2;
             state.p1Score = 0;
             state.p2Score = 0;
             state.p1Correct = 0;
             state.p2Correct = 0;
+            state.topic = topic;
+            state.questionHistory = [];
+            state.currentPlayer = 1;
             
-            els.hud.container.classList.remove('hidden');
-            els.hud.topicBadge.textContent = topic;
-
-            await startRound();
+            startRound(1);
         }
 
-        async function continueStreak() {
-            sounds.click();
-            await startRound();
-        }
-
-        async function startPlayer2Turn() {
-            sounds.click();
-            state.currentPlayer = 2;
+        function startRound(playerNum) {
+            state.currentPlayer = playerNum;
+            state.roundQuestions = [];
+            state.currentQIndex = 0;
             state.score = 0;
             state.streak = 0;
-            await startRound();
-        }
-
-        async function startRound() {
-            state.currentQIndex = 0;
             state.correctInRound = 0;
-            state.roundQuestions = [];
             state.lifelineUsed = false;
             
-            // Show interstitial ad before the round starts (if it's not the first player's first round)
-            if ((state.mode === 'solo' && state.score > 0) || (state.mode === 'versus' && state.currentPlayer === 2)) {
-                await showInterstitialAd(); 
-            }
-            
-            const currentPlayerName = state.currentPlayer === 1 ? state.p1Name : state.p2Name;
-            
+            // Update HUD
+            const currentPlayerName = playerNum === 1 ? state.p1Name : state.p2Name;
+            document.getElementById('player-turn-label').textContent = currentPlayerName;
+            els.scoreVal.textContent = "0";
+            els.streakVal.textContent = "0";
+
+            // Show Loading
             document.getElementById('loading-player').textContent = currentPlayerName;
-            document.getElementById('loading-player').className = state.currentPlayer === 1 ? "text-indigo-400 font-bold" : "text-purple-400 font-bold";
             document.getElementById('loading-topic').textContent = state.topic;
             switchView('loading');
 
-            await fetchQuestions();
+            fetchQuestions(state.topic, currentPlayerName);
         }
 
-        async function fetchQuestions(retryCount = 0) {
+        async function fetchQuestions(topic, playerName) {
             if (state.isFetching) return;
             state.isFetching = true;
 
-            const historyContext = state.questionHistory.slice(-60); // Check past questions to prevent dupes
-
+            // Updated prompt to enforce Metric units and location relevance
             const prompt = `
-                Role: Trivia Host. Topic: "${state.topic}".
-                Target Audience: General. Rating: PG-13.
-                STRICT PROTOCOLS:
-                1. If topic is inappropriate, ignore and use "General Knowledge".
-                2. EXCLUDE these past questions: ${JSON.stringify(historyContext)}.
-                3. The "q" field MUST NOT reveal the answer.
+                Generate ${QUESTIONS_PER_ROUND} trivia questions about "${topic}".
+                Format as a JSON object with a "questions" array.
+                Each item must have: 
+                - "q": Question text (concise).
+                - "options": Array of 4 strings.
+                - "answer": The string of the correct option.
+                - "context": A short interesting fact explaining the answer (max 1 sentence).
                 
-                Task: Generate ${QUESTIONS_PER_ROUND} UNIQUE multiple choice questions.
-                Output: JSON Array.
-                Schema: [{"q": "Question?", "opts": ["Opt1", "Opt2", "Opt3", "Opt4"], "ans": "Opt1", "exp": "Explanation."}]
-                IMPORTANT: "ans" MUST be the exact text of the correct option.
+                STRICT REQUIREMENTS:
+                1. Use Metric units (km, kg, Celsius, etc.) for ALL measurements, unless the topic is specifically about a system that uses Imperial (e.g. "American Football" or "US Road Signs").
+                2. If the topic implies a specific location (e.g. "History of Sydney"), ensure questions are locally accurate and relevant.
+                3. Ensure questions vary in difficulty.
+                
+                Do not include markdown formatting like \`\`\`json. Just raw JSON.
             `;
 
             try {
-                // Fetch implementation with exponential backoff
-                const maxRetries = 3;
-                let delay = 1000;
-                let response;
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${getApiKey()}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }]
+                    })
+                });
 
-                for (let i = 0; i < maxRetries; i++) {
-                    try {
-                        response = await fetch(API_URL, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                        });
-
-                        if (response.ok) break; // Success
-                        if (response.status === 429 && i < maxRetries - 1) { // Rate limit or transient error
-                            await new Promise(resolve => setTimeout(resolve, delay));
-                            delay *= 2;
-                            continue;
-                        }
-                        throw new Error(`API Error: ${response.status}`);
-                    } catch (e) {
-                        if (i === maxRetries - 1) throw e; // Re-throw final error
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                        delay *= 2;
-                    }
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error.message);
                 }
 
-                if (!response || !response.ok) throw new Error("Failed to fetch questions after multiple retries.");
-                
-                const data = await response.json();
-                let text = data.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').trim();
-                const json = JSON.parse(text);
-                
-                if (!Array.isArray(json) || json.length < 5) throw new Error("Bad Data");
+                const text = data.candidates[0].content.parts[0].text;
+                // Clean markdown if present
+                const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
+                const parsed = JSON.parse(jsonStr);
 
-                state.roundQuestions = json;
-                // Add new questions to history so P2 doesn't get them (or next round doesn't)
-                state.roundQuestions.forEach(q => state.questionHistory.push(q.q));
-
+                state.roundQuestions = parsed.questions;
                 state.isFetching = false;
-                loadQuestion();
+                
+                startGameLoop();
 
             } catch (e) {
-                console.error("Question fetching failed:", e);
+                console.error(e);
                 state.isFetching = false;
-                showToast("Failed to generate questions. Check API key and console for details.", true);
+                showToast("Failed to generate questions. Check API Key.", true);
                 switchView('start');
             }
         }
 
-        function loadQuestion() {
-            if (state.currentQIndex >= state.roundQuestions.length) {
-                endRound();
-                return;
-            }
-
-            const q = state.roundQuestions[state.currentQIndex];
+        function startGameLoop() {
             switchView('game');
-            updateHUD();
+            renderQuestion();
+        }
 
-            els.game.question.textContent = q.q;
+        function renderQuestion() {
+            const q = state.roundQuestions[state.currentQIndex];
+            
+            // Reset UI
+            els.game.currentQ.textContent = state.currentQIndex + 1;
+            els.game.topicBadge.textContent = state.topic;
+            els.game.questionText.textContent = q.q;
             els.game.feedbackArea.classList.add('hidden');
-            els.game.options.innerHTML = '';
-            els.game.lifelineBtn.disabled = state.lifelineUsed;
-
-            let opts = [...q.opts];
-            opts.sort(() => Math.random() - 0.5);
-
-            opts.forEach(opt => {
+            els.game.progressBar.style.width = `${((state.currentQIndex) / QUESTIONS_PER_ROUND) * 100}%`;
+            
+            // Lifeline Reset
+            document.getElementById('btn-5050').disabled = state.lifelineUsed;
+            
+            // Render Options
+            const container = els.game.optionsContainer;
+            container.innerHTML = '';
+            
+            q.options.forEach((opt, idx) => {
                 const btn = document.createElement('button');
-                btn.className = "w-full p-4 text-left bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all duration-200 relative overflow-hidden group option-btn";
-                btn.innerHTML = `<div class="w-2 h-2 rounded-full bg-white/20 absolute left-4 top-1/2 -translate-y-1/2 group-hover:bg-indigo-400 transition-colors"></div><span class="ml-6 font-medium text-slate-200 group-hover:text-white">${opt}</span>`;
-                btn.onclick = () => handleAnswer(btn, opt, q);
-                btn.dataset.value = opt; 
-                els.game.options.appendChild(btn);
+                btn.className = `w-full p-4 rounded-xl bg-slate-800/50 hover:bg-slate-700 border border-white/5 text-left text-sm sm:text-base transition-all btn-hover relative overflow-hidden group`;
+                btn.innerHTML = `
+                    <span class="font-bold text-gray-500 mr-2 group-hover:text-indigo-400 transition-colors">${String.fromCharCode(65 + idx)}.</span>
+                    <span class="text-gray-100">${opt}</span>
+                `;
+                btn.onclick = () => handleAnswer(opt, btn, q.answer, q.context);
+                container.appendChild(btn);
             });
         }
 
-        function useLifeline5050() {
-            if (state.lifelineUsed) return;
+        function handleAnswer(selected, btnElement, correct, context) {
+            // Disable all buttons
+            const buttons = Array.from(els.game.optionsContainer.children);
+            buttons.forEach(b => b.disabled = true);
             
-            sounds.click();
-            const q = state.roundQuestions[state.currentQIndex];
-            const correctAns = normalizeAnswer(q.ans, q.opts);
-            const buttons = Array.from(els.game.options.querySelectorAll('button'));
+            const isCorrect = selected === correct;
             
-            const wrongButtons = buttons.filter(btn => btn.dataset.value.trim() !== correctAns.trim());
-            
-            wrongButtons.sort(() => Math.random() - 0.5);
-            const toRemove = wrongButtons.slice(0, 2);
-            
-            toRemove.forEach(btn => btn.classList.add('removed-option'));
-            
-            state.lifelineUsed = true;
-            els.game.lifelineBtn.disabled = true;
-        }
-
-        function normalizeAnswer(ans, originalOpts) {
-            // Check if the answer is a single letter (A, B, C, D)
-            if (ans.length === 1 && /^[A-D]$/i.test(ans)) {
-                // Find the index based on the letter (A=0, B=1, etc.)
-                // This assumes the originalOpts array contains options in the order A, B, C, D, even if randomized for display.
-                // Since the API returns {"q":..., "opts": ["A","B","C","D"], "ans": "B"}, we must be careful.
-                // If the API returns 'A', 'B', 'C', 'D' as option text, this is fine.
-                // If the API returns 'The answer is X' and ans is 'The answer is X', this is fine.
-                return ans;
-            }
-            return ans;
-        }
-
-        function handleAnswer(selectedBtn, selectedOpt, qObj) {
-            const allBtns = els.game.options.querySelectorAll('button');
-            allBtns.forEach(b => { b.disabled = true; b.classList.add('cursor-default'); });
-            els.game.lifelineBtn.disabled = true;
-
-            const correctAns = normalizeAnswer(qObj.ans, qObj.opts);
-            const isCorrect = (selectedOpt.trim() === correctAns.trim());
-            
-            els.game.feedbackArea.classList.remove('hidden');
-            els.game.feedbackText.textContent = qObj.exp || "";
-
             if (isCorrect) {
+                btnElement.classList.remove('bg-slate-800/50');
+                btnElement.classList.add('correct-answer');
                 sounds.success();
-                selectedBtn.classList.add('correct-answer');
-                const basePoints = 100;
-                const pointsEarned = Math.round(basePoints * Math.pow(1.2, state.streak));
                 
-                state.score += pointsEarned;
+                // Scoring Logic
+                const basePoints = 100;
+                const streakBonus = state.streak * 10;
+                const points = basePoints + streakBonus;
+                
+                state.score += points;
                 state.streak++;
                 state.correctInRound++;
                 
-                els.game.feedbackTitle.textContent = "Correct!";
-                els.game.feedbackTitle.className = "font-bold text-lg mb-1 text-green-400";
-                els.game.feedbackStrip.className = "absolute left-0 top-0 bottom-0 w-1 bg-green-500";
-                els.game.pointsDisplay.classList.remove('hidden');
-                els.game.pointsVal.textContent = pointsEarned;
+                // Float Points Animation
+                showFloatPoints(btnElement, points);
                 
-                showFloatingPoints(selectedBtn, pointsEarned);
+                // Update HUD
+                animateValue(els.scoreVal, parseInt(els.scoreVal.textContent), state.score, 500);
+                els.streakVal.textContent = state.streak;
+                
+                // Feedback UI
+                showFeedback(true, "Correct!", context, points);
             } else {
+                btnElement.classList.remove('bg-slate-800/50');
+                btnElement.classList.add('wrong-answer');
                 sounds.fail();
-                selectedBtn.classList.add('wrong-answer');
-                allBtns.forEach(b => {
-                    if(b.dataset.value.trim() === correctAns.trim()) b.classList.add('correct-answer');
-                    else if(b !== selectedBtn) b.classList.add('unselected-dim');
+                
+                // Highlight correct one
+                buttons.forEach(b => {
+                    if (b.textContent.includes(correct)) {
+                        b.classList.add('correct-answer');
+                    } else if (b !== btnElement) {
+                        b.classList.add('unselected-dim');
+                    }
                 });
 
                 state.streak = 0;
-                els.game.feedbackTitle.textContent = "Incorrect";
-                els.game.feedbackTitle.className = "font-bold text-lg mb-1 text-red-400";
-                els.game.feedbackStrip.className = "absolute left-0 top-0 bottom-0 w-1 bg-red-500";
-                els.game.pointsDisplay.classList.add('hidden');
+                els.streakVal.textContent = "0";
+                showFeedback(false, "Missed it!", context, 0);
             }
-
-            updateHUD();
-            // Scroll to the feedback area on mobile devices
-            setTimeout(() => { document.getElementById('feedback-area').scrollIntoView({behavior: 'smooth', block: 'nearest'}); }, 100);
         }
 
-        function showFloatingPoints(targetBtn, amount) {
-            const rect = targetBtn.getBoundingClientRect();
-            const floatEl = document.createElement('div');
-            floatEl.textContent = `+${amount}`;
-            floatEl.className = "points-float text-xl";
-            // Calculate position relative to the viewport
-            floatEl.style.left = (rect.left + rect.width / 2) + "px";
-            floatEl.style.top = rect.top + "px";
-            document.body.appendChild(floatEl);
-            setTimeout(() => floatEl.remove(), 1000);
+        function showFeedback(isSuccess, title, text, points) {
+            const area = els.game.feedbackArea;
+            const strip = document.getElementById('feedback-color-strip');
+            
+            area.classList.remove('hidden');
+            els.game.feedbackTitle.textContent = title;
+            els.game.feedbackTitle.className = isSuccess ? "font-bold text-lg mb-1 text-green-400" : "font-bold text-lg mb-1 text-red-400";
+            els.game.feedbackText.textContent = text;
+            strip.className = isSuccess ? "absolute left-0 top-0 bottom-0 w-1 bg-green-500" : "absolute left-0 top-0 bottom-0 w-1 bg-red-500";
+            
+            if (points > 0) {
+                els.game.pointsDisplay.classList.remove('hidden');
+                els.game.pointsVal.textContent = points;
+            } else {
+                els.game.pointsDisplay.classList.add('hidden');
+            }
+            
+            // Auto scroll to bottom
+            setTimeout(() => {
+                const view = document.getElementById('view-game');
+                view.scrollTo({ top: view.scrollHeight, behavior: 'smooth' });
+            }, 100);
         }
 
         function nextQuestion() {
             sounds.click();
             state.currentQIndex++;
-            loadQuestion();
+            
+            if (state.currentQIndex >= QUESTIONS_PER_ROUND) {
+                endRound();
+            } else {
+                renderQuestion();
+            }
         }
 
         function endRound() {
-            sounds.win();
-            
-            // Show interstitial ad when round is complete
-            showInterstitialAd();
-
-            if (state.mode === 'versus') {
-                if (state.currentPlayer === 1) {
-                    // STORE P1 DATA AND SWITCH
-                    state.p1Score = state.score;
-                    state.p1Correct = state.correctInRound;
-                    
-                    els.intermission.score.textContent = state.p1Score.toLocaleString();
-                    els.intermission.nextName.textContent = state.p2Name;
-                    
-                    switchView('intermission');
-                    return;
-                } else {
-                    // P2 FINISHED
-                    state.p2Score = state.score;
-                    state.p2Correct = state.correctInRound;
-                    
-                    // Show Comparison
-                    els.end.soloStats.classList.add('hidden');
-                    els.end.versusStats.classList.remove('hidden');
-                    els.end.btnNext.classList.add('hidden'); // No next round in versus mode directly
-
-                    // Update Card Data
-                    document.getElementById('res-p1-name').textContent = state.p1Name;
-                    document.getElementById('res-p1-score').textContent = state.p1Score.toLocaleString();
-                    document.getElementById('res-p1-correct').textContent = `${state.p1Correct}/${QUESTIONS_PER_ROUND}`;
-
-                    document.getElementById('res-p2-name').textContent = state.p2Name;
-                    document.getElementById('res-p2-score').textContent = state.p2Score.toLocaleString();
-                    document.getElementById('res-p2-correct').textContent = `${state.p2Correct}/${QUESTIONS_PER_ROUND}`;
-
-                    // Highlight Winner
-                    const p1Card = document.getElementById('p1-result-card');
-                    const p2Card = document.getElementById('p2-result-card');
-                    
-                    p1Card.className = "p-4 rounded-2xl border flex justify-between items-center relative overflow-hidden transition-all";
-                    p2Card.className = "p-4 rounded-2xl border flex justify-between items-center relative overflow-hidden transition-all";
-
-                    if (state.p1Score > state.p2Score) {
-                        els.end.title.textContent = `${state.p1Name} Wins!`;
-                        els.end.subtitle.textContent = `Victory by ${Math.abs(state.p1Score - state.p2Score)} points`;
-                        p1Card.classList.add('bg-green-500/20', 'border-green-500');
-                        p2Card.classList.add('bg-white/5', 'border-white/10', 'opacity-50');
-                    } else if (state.p2Score > state.p1Score) {
-                        els.end.title.textContent = `${state.p2Name} Wins!`;
-                        els.end.subtitle.textContent = `Victory by ${Math.abs(state.p2Score - state.p1Score)} points`;
-                        p2Card.classList.add('bg-green-500/20', 'border-green-500');
-                        p1Card.classList.add('bg-white/5', 'border-white/10', 'opacity-50');
-                    } else {
-                        els.end.title.textContent = "It's a Tie!";
-                        els.end.subtitle.textContent = "Incredible match!";
-                        p1Card.classList.add('bg-indigo-500/20', 'border-indigo-500');
-                        p2Card.classList.add('bg-purple-500/20', 'border-purple-500');
-                    }
-                    
-                    switchView('end');
-                }
+            // Save scores to state
+            if (state.currentPlayer === 1) {
+                state.p1Score = state.score;
+                state.p1Correct = state.correctInRound;
             } else {
-                // SOLO END
-                els.end.title.textContent = "Round Complete!";
-                els.end.subtitle.textContent = `Great job, ${state.p1Name}.`;
-                els.end.soloStats.classList.remove('hidden');
-                els.end.versusStats.classList.add('hidden');
-                els.end.btnNext.classList.remove('hidden');
-
-                els.end.score.textContent = state.score.toLocaleString();
-                els.end.correct.textContent = `${state.correctInRound}/${QUESTIONS_PER_ROUND}`;
-                
-                switchView('end');
+                state.p2Score = state.score;
+                state.p2Correct = state.correctInRound;
             }
+
+            // Check Flow
+            if (state.mode === 'versus' && state.currentPlayer === 1) {
+                // Intermission
+                document.getElementById('intermission-score').textContent = state.p1Score;
+                document.getElementById('intermission-next-name').textContent = state.p2Name;
+                switchView('intermission');
+            } else {
+                // Game Over
+                showEndScreen();
+            }
+        }
+
+        function startPlayer2Turn() {
+            sounds.click();
+            startRound(2);
+        }
+
+        function showEndScreen() {
+            sounds.win();
+            switchView('end');
+            
+            const isSolo = state.mode === 'solo';
+            
+            // Hide/Show correct stats container
+            document.getElementById('solo-stats').classList.toggle('hidden', !isSolo);
+            document.getElementById('versus-stats').classList.toggle('hidden', isSolo);
+            document.getElementById('btn-next-round').classList.toggle('hidden', !isSolo);
+
+            if (isSolo) {
+                document.getElementById('end-title').textContent = "Round Complete!";
+                document.getElementById('end-subtitle').innerHTML = `Great job, <span class="text-indigo-300">${state.p1Name}</span>.`;
+                document.getElementById('end-score').textContent = state.p1Score;
+                document.getElementById('end-correct').textContent = `${state.p1Correct}/${QUESTIONS_PER_ROUND}`;
+                
+                // Save High Score
+                saveHighScore(state.p1Score);
+            } else {
+                // Versus Logic
+                const p1Win = state.p1Score > state.p2Score;
+                const tie = state.p1Score === state.p2Score;
+                
+                let title = p1Win ? `${state.p1Name} Wins!` : `${state.p2Name} Wins!`;
+                if (tie) title = "It's a Draw!";
+                
+                document.getElementById('end-title').textContent = title;
+                document.getElementById('end-subtitle').textContent = "Final Results";
+                
+                // Fill Cards
+                document.getElementById('res-p1-name').textContent = state.p1Name;
+                document.getElementById('res-p1-score').textContent = state.p1Score;
+                document.getElementById('res-p1-correct').textContent = `${state.p1Correct}/10`;
+                
+                document.getElementById('res-p2-name').textContent = state.p2Name;
+                document.getElementById('res-p2-score').textContent = state.p2Score;
+                document.getElementById('res-p2-correct').textContent = `${state.p2Correct}/10`;
+                
+                // Highlight Winner
+                const p1Card = document.getElementById('p1-result-card');
+                const p2Card = document.getElementById('p2-result-card');
+                
+                p1Card.className = p1Win 
+                    ? "bg-indigo-600 p-4 rounded-2xl border border-white/20 flex justify-between items-center shadow-lg transform scale-105 transition-transform"
+                    : "bg-indigo-900/30 p-4 rounded-2xl border border-indigo-500/30 flex justify-between items-center opacity-70";
+                    
+                p2Card.className = (!p1Win && !tie)
+                    ? "bg-purple-600 p-4 rounded-2xl border border-white/20 flex justify-between items-center shadow-lg transform scale-105 transition-transform"
+                    : "bg-purple-900/30 p-4 rounded-2xl border border-purple-500/30 flex justify-between items-center opacity-70";
+            }
+        }
+
+        // --- LIFELINES ---
+        function useLifeline5050() {
+            if (state.lifelineUsed) return;
+            state.lifelineUsed = true;
+            document.getElementById('btn-5050').disabled = true;
+            
+            const q = state.roundQuestions[state.currentQIndex];
+            const correct = q.answer;
+            const buttons = Array.from(els.game.optionsContainer.children);
+            
+            // Filter wrong buttons
+            const wrongButtons = buttons.filter(b => !b.textContent.includes(correct));
+            
+            // Remove 2 random wrong ones
+            const toRemove = wrongButtons.sort(() => 0.5 - Math.random()).slice(0, 2);
+            toRemove.forEach(b => b.classList.add('removed-option'));
+            
+            sounds.click();
+        }
+
+        // --- UTILS ---
+        function showFloatPoints(targetEl, amount) {
+            const rect = targetEl.getBoundingClientRect();
+            const el = document.createElement('div');
+            el.className = 'points-float text-2xl';
+            el.textContent = `+${amount}`;
+            el.style.left = (rect.left + rect.width / 2) + 'px';
+            el.style.top = rect.top + 'px';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        function animateValue(obj, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerHTML = Math.floor(progress * (end - start) + start);
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        function saveHighScore(score) {
+            let scores = JSON.parse(localStorage.getItem('trivia_scores') || '[]');
+            scores.push({ date: new Date().toLocaleDateString(), score: score, topic: state.topic });
+            scores.sort((a, b) => b.score - a.score);
+            scores = scores.slice(0, 5); // Keep top 5
+            localStorage.setItem('trivia_scores', JSON.stringify(scores));
+            updateHighScores();
+        }
+
+        function updateHighScores() {
+            const list = document.getElementById('mini-leaderboard');
+            const scores = JSON.parse(localStorage.getItem('trivia_scores') || '[]');
+            
+            if (scores.length === 0) {
+                list.innerHTML = '<div class="p-3 rounded-lg bg-white/5 text-gray-400 text-center italic">No scores recorded yet.</div>';
+                return;
+            }
+            
+            list.innerHTML = '';
+            scores.forEach((s, i) => {
+                const row = document.createElement('div');
+                row.className = "flex justify-between items-center p-3 rounded-lg bg-white/5 border border-white/5";
+                row.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-gray-500 w-4">${i + 1}.</span>
+                        <span class="text-xs text-gray-300 truncate max-w-[100px]">${s.topic}</span>
+                    </div>
+                    <span class="font-mono font-bold text-indigo-400">${s.score}</span>
+                `;
+                list.appendChild(row);
+            });
         }
 
         function saveAndReset() {
             sounds.click();
-            
-            // Save logic (Solo only for now to keep leaderboard clean)
-            if (state.mode === 'solo' && state.score > 0) {
-                const history = JSON.parse(localStorage.getItem('trivia_scores') || '[]');
-                history.push({
-                    name: state.p1Name,
-                    score: state.score,
-                    topic: state.topic,
-                    date: new Date().toLocaleDateString()
-                });
-                history.sort((a, b) => b.score - a.score);
-                const top5 = history.slice(0, 5);
-                localStorage.setItem('trivia_scores', JSON.stringify(top5));
-            }
-
-            // Reset UI
-            loadLeaderboard();
-            generateSuggestions(); 
-            els.hud.container.classList.add('hidden');
-            state.score = 0;
-            state.streak = 0;
             switchView('start');
+            generateSuggestions();
         }
 
-        function loadLeaderboard() {
-            const history = JSON.parse(localStorage.getItem('trivia_scores') || '[]');
-            const container = els.leaderboard;
-            container.innerHTML = '';
-
-            if (history.length === 0) {
-                container.innerHTML = '<div class="p-3 rounded-lg bg-white/5 text-gray-400 text-center italic">No scores recorded yet.</div>';
-                return;
-            }
-
-            history.forEach((entry, i) => {
-                const div = document.createElement('div');
-                div.className = "flex justify-between items-center p-3 rounded-lg bg-white/5 border border-white/5";
-                
-                let iconColor = "text-gray-500";
-                if(i === 0) iconColor = "text-yellow-400";
-                if(i === 1) iconColor = "text-gray-300";
-                if(i === 2) iconColor = "text-amber-600";
-
-                div.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <span class="font-bold w-4 ${iconColor}">#${i+1}</span>
-                        <div>
-                            <div class="font-bold text-white">${entry.name}</div>
-                            <div class="text-[10px] text-gray-400 uppercase tracking-wide">${entry.topic}</div>
-                        </div>
-                    </div>
-                    <div class="font-mono font-bold text-indigo-300">${entry.score.toLocaleString()}</div>
-                `;
-                container.appendChild(div);
-            });
+        function continueStreak() {
+            sounds.click();
+            // In solo mode, keep the score but reset round specific trackers
+            state.correctInRound = 0;
+            startRound(1);
         }
+
     </script>
 </body>
 </html>
